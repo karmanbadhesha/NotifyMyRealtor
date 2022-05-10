@@ -1,9 +1,13 @@
 // check onload to see if user is already logged in
 window.onload = function () {
-  chrome.storage.local.get(["email", "token"], function (result) {
+  chrome.storage.local.get(["email", "token", "userId"], function (result) {
     if (result && result.token && result.email) {
       console.log("result: ", result);
-      setLoggedInState({ email: result.email, token: result.token });
+      setLoggedInState({
+        email: result.email,
+        token: result.token,
+        userId: result.userId,
+      });
     } else {
       setLoggedOutState();
     }
@@ -33,6 +37,12 @@ new_realtor_form.addEventListener("submit", (e) => {
   setIdInvisible("new_realtor_form");
   // e.preventDefault();
 });
+
+async function getCurrentTab() {
+  let queryOptions = { active: true, currentWindow: true };
+  let [tab] = await chrome.tabs.query(queryOptions);
+  return tab;
+}
 
 async function addNewRealtor(data) {
   let { new_realtor_name, new_realtor_email } = data;
@@ -102,15 +112,38 @@ function deleteRealtorByIndex(index) {
 }
 
 function emailRealtorByIndex(index) {
-  return new Promise(function (resolve, reject) {
-    chrome.storage.local.get(["realtors"], function (result) {
-      if (result && result.realtors) {
-        result.realtors.splice(index, 1);
-        chrome.storage.local.set({ realtors: result.realtors });
-        resolve(result.realtors);
+  return new Promise(async function (resolve, reject) {
+    const tab = await getCurrentTab();
+
+    chrome.storage.local.get(["userId", "token"], function (result) {
+      if (result) {
+        console.log("emailRealtorByIndex: ", result);
+        const userId = result.userId;
+        const token = result.token;
+
+        console.log("TOKEN: ", token);
+        post({
+          url: `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/send`,
+          callback: (result) => {
+            console.log("EMAIL RESULT: ", result);
+          },
+          token: token,
+          data: {
+            raw: "",
+          },
+        });
       }
       resolve([]);
     });
+
+    //   chrome.storage.local.get(["realtors"], function (result) {
+    //     if (result && result.realtors) {
+    //       result.realtors.splice(index, 1);
+    //       chrome.storage.local.set({ realtors: result.realtors });
+    //       resolve(result.realtors);
+    //     }
+    //     resolve([]);
+    //   });
   });
 }
 
@@ -149,7 +182,7 @@ function createRealtorListeners(realtors) {
             deleteRealtorByIndex(index);
           }
           case "email": {
-            deleteRealtorByIndex(index);
+            emailRealtorByIndex(index);
           }
         }
       });
@@ -188,7 +221,11 @@ function generateRealtorTable(data) {
 
 function setLoggedInState(options) {
   console.log("options: ", options);
-  chrome.storage.local.set({ token: options.token, email: options.email });
+  chrome.storage.local.set({
+    token: options.token,
+    email: options.email,
+    userId: options.userId,
+  });
   setIdInvisible("authorize_button");
   setIdVisible("signout_button");
   setIdVisible("logged_in");
@@ -197,7 +234,7 @@ function setLoggedInState(options) {
 }
 
 function setLoggedOutState() {
-  chrome.storage.local.set({ token: null, email: null });
+  chrome.storage.local.set({ token: null, email: null, userId: null });
   setIdInvisible("signout_button");
   setIdInvisible("logged_in");
   setIdVisible("authorize_button");
@@ -296,8 +333,9 @@ async function getBrowserActionAuthTokenCallback(token) {
     try {
       // successful auth
       console.log("getBrowserActionAuthTokenCallback ELSE");
-      const email = await getProfile();
-      setLoggedInState({ email: email, token: token });
+      const { email, id } = await getProfile();
+
+      setLoggedInState({ email: email, token: token, userId: id });
     } catch (error) {
       alert(error);
       setLoggedOutState();
@@ -316,11 +354,26 @@ function getProfile() {
   return new Promise(function (resolve, reject) {
     chrome.identity.getProfileUserInfo(function (user_info) {
       if (user_info && user_info.email) {
-        resolve(user_info.email);
+        console.log("USER_INFO: ", user_info);
+        resolve(user_info);
       } else {
         reject("Error fetching email");
       }
     });
+
+    // chrome.storage.local.get(["token"], function (result) {
+    //   if (result) {
+    //     const token = result.token;
+    //     get({
+    //       url: "https://www.googleapis.com/plus/v1/people/me",
+    //       callback: (person) => {
+    //         console.log("PERSON :", person);
+    //       },
+    //       token: token,
+    //     });
+    //   }
+    //   resolve([]);
+    // });
   });
 }
 
@@ -346,4 +399,30 @@ function get(options) {
   // Set standard Google APIs authentication header.
   xhr.setRequestHeader("Authorization", "Bearer " + options.token);
   xhr.send();
+}
+
+/**
+ * Make an authenticated HTTP POST request.
+ *
+ * @param {object} options
+ *   @value {string} url - URL to make the request to. Must be whitelisted in manifest.json
+ *   @value {string} token - Google access_token to authenticate request with.
+ *   @value {function} callback - Function to receive response.
+ */
+function post(options) {
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      // JSON response assumed. Other APIs may have different responses.
+      options.callback(JSON.parse(xhr.responseText));
+    } else {
+      console.log("get", xhr.readyState, xhr.status, xhr.responseText);
+    }
+  };
+  xhr.open("POST", options.url, true);
+  // Set standard Google APIs authentication header.
+  xhr.setRequestHeader("Accept", "application/json");
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.setRequestHeader("Authorization", "Bearer " + options.token);
+  xhr.send(options.data);
 }
