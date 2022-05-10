@@ -1,8 +1,18 @@
 {
-  "name": "NotifyMyRealtor",
-  "description": "Send an email to your realtor anytime you come across a real estate listing you are interested in!",
-  "version": "0.0.0.1",
   "manifest_version": 3,
+  "name": "Notifymyrealtor",
+  "version": "0.1.0",
+  "description": "Send an email to your realtor anytime you come across a real estate listing you are interested in!",
+  "icons": {
+    "16": "icons/icon_16.png",
+    "32": "icons/icon_32.png",
+    "48": "icons/icon_48.png",
+    "128": "icons/icon_128.png"
+  },
+  "action": {
+    "default_title": "Notifymyrealtor",
+    "default_popup": "popup.html"
+  },
   "permissions": [
     "tabs",
     "background",
@@ -12,26 +22,10 @@
     "alarms",
     "scripting"
   ],
-
   "host_permissions": [
     "https://www.googleapis.com/*",
     "https://*.googleusercontent.com/*"
   ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "/images/get_started16.png",
-      "32": "/images/get_started32.png",
-      "48": "/images/get_started48.png",
-      "128": "/images/get_started128.png"
-    }
-  },
-  "icons": {
-    "16": "/images/get_started16.png",
-    "32": "/images/get_started32.png",
-    "48": "/images/get_started48.png",
-    "128": "/images/get_started128.png"
-  },
   "oauth2": {
     "client_id": "560536441674-qk5kbv447akdfc7lv0a1tun7hojt9i86.apps.googleusercontent.com",
     "scopes": [
