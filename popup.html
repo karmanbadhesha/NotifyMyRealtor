@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <button id="authorize_button">Authorize</button>
+    <div id="logged_in">
+      Currently logged in as
+      <div id="current_email" class="email"></div>
+      <div id="realtor_list">
+        <button id="add_realtor">Add realtor</button>
+        <form id="new_realtor_form" style="display: none">
+          <label for="new_realtor_name">Name:</label><br />
+          <input
+            type="text"
+            id="new_realtor_name"
+            name="new_realtor_name"
+          /><br />
+          <label for="new_realtor_email">Email:</label><br />
+          <input type="text" id="new_realtor_email" name="new_realtor_email" />
+          <input id="new_realtor_form_submit" type="submit" value="Submit" />
+        </form>
+        <div id="realtor_table"></div>
+      </div>
+    </div>
+
+    <button id="signout_button">Sign Out</button>
+    <script src="scripts/popup.js"></script>
+  </body>
+</html>
