@@ -13,15 +13,7 @@
     "default_title": "Notifymyrealtor",
     "default_popup": "popup.html"
   },
-  "permissions": [
-    "tabs",
-    "background",
-    "identity",
-    "identity.email",
-    "storage",
-    "alarms",
-    "scripting"
-  ],
+  "permissions": ["tabs", "identity", "identity.email", "storage"],
   "host_permissions": [
     "https://www.googleapis.com/*",
     "https://*.googleusercontent.com/*"

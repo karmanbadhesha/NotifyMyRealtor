@@ -3,7 +3,6 @@ import { Base64 } from "js-base64";
 window.onload = function () {
   chrome.storage.local.get(["email", "token", "userId"], function (result) {
     if (result && result.token && result.email) {
-      console.log("result: ", result);
       setLoggedInState({
         email: result.email,
         token: result.token,
@@ -18,10 +17,10 @@ window.onload = function () {
 // listen to token changing to update current_email accordingly
 chrome.storage.onChanged.addListener(function (changes, namespace) {
   for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-    console.log(
-      `Storage key "${key}" in namespace "${namespace}" changed.`,
-      `Old value was "${oldValue}", new value is "${newValue}".`
-    );
+    // console.log(
+    //   `Storage key "${key}" in namespace "${namespace}" changed.`,
+    //   `Old value was "${oldValue}", new value is "${newValue}".`
+    // );
     if (key === "realtors") {
       generateRealtorTable(newValue);
     }
@@ -57,7 +56,6 @@ let new_realtor_form = document.getElementById("new_realtor_form");
 new_realtor_form.addEventListener("submit", (e) => {
   const data = Object.fromEntries(new FormData(e.target).entries());
   addNewRealtor(data);
-  console.log(data);
   setIdInvisible("new_realtor_form");
   // e.preventDefault();
 });
@@ -71,7 +69,6 @@ async function getCurrentTab() {
 async function addNewRealtor(data) {
   let { new_realtor_name, new_realtor_email } = data;
   const does_realtor_exist = await checkExistingRealtor(new_realtor_email);
-  console.log("does_realtor_exist", does_realtor_exist);
   if (does_realtor_exist) {
     // find and replace existing reator
     chrome.storage.local.get(["realtors"], function (result) {
@@ -85,7 +82,6 @@ async function addNewRealtor(data) {
           };
         }
         chrome.storage.local.set({ realtors: realtors });
-        console.log("replaced realtor");
       }
     });
   } else {
@@ -96,7 +92,6 @@ async function addNewRealtor(data) {
         let realtors = result.realtors;
         realtors.push({ name: new_realtor_name, email: new_realtor_email });
         chrome.storage.local.set({ realtors: realtors });
-        console.log("added new realtor");
       } else {
         // if no realtor exists
         let realtors = [];
@@ -112,7 +107,6 @@ function fetchRealtors() {
   return new Promise(function (resolve, reject) {
     chrome.storage.local.get(["realtors"], function (result) {
       if (result && result.realtors) {
-        console.log(result.realtors);
         generateRealtorTable(result.realtors);
         createRealtorListeners(result.realtors);
         resolve(result.realtors);
@@ -144,19 +138,6 @@ function getRealtorByIndex(index) {
     });
   });
 }
-
-// function composeEmailBody(to, from, subject, message) {
-//   let str = [
-//     "To: ",
-//     `<${to}>`,
-//     "From: ",
-//     `<${from}>`,
-//     "Subject: ",
-//     subject,
-//     message,
-//   ].join("");
-//   return str;
-// }
 
 function createMessageJson(
   recepiant_email,
@@ -194,7 +175,6 @@ function emailRealtorByIndex(index) {
   return new Promise(async function (resolve, reject) {
     const tab = await getCurrentTab();
     const realtor = await getRealtorByIndex(index);
-    console.log("REALTOR: ", realtor);
     if (realtor) {
       chrome.storage.local.get(["userId", "token", "email"], function (result) {
         if (result) {
@@ -206,18 +186,15 @@ function emailRealtorByIndex(index) {
           let message = createMessageJson(
             realtor.email,
             realtor.name,
-            "sender_name",
+            result.email,
             result.email,
             "NotifyMyRealtor",
             `${realtor.name}, sender_name wants to inform you of this listing: ${tab.url}. This message was sent using the NotifyMyRealtor Chrome Extension.`
           );
 
-          console.log("message: ", message);
-
           const userId = result.userId;
           const token = result.token;
 
-          console.log("TOKEN: ", token);
           postGmail({
             url: `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/send`,
             token: token,
@@ -225,7 +202,7 @@ function emailRealtorByIndex(index) {
               raw: message,
             },
             callback: (result) => {
-              console.log("EMAIL RESULT: ", result);
+              alert("Email sent!");
             },
           });
         }
@@ -236,12 +213,10 @@ function emailRealtorByIndex(index) {
 }
 
 async function checkExistingRealtor(email) {
-  console.log("checkExistingRealtor: EMAIL: ", email);
   return new Promise(function (resolve, reject) {
     chrome.storage.local.get(["realtors"], function (result) {
       if (result && result.realtors) {
         let found_email = result.realtors.filter((r) => r.email === email)[0];
-        console.log("found_email: ", found_email);
         if (found_email && found_email.email === email) {
           resolve(true);
         }
@@ -259,11 +234,8 @@ function createRealtorListeners(realtors) {
         `${i}_email_${buttonTypes[j]}`
       );
       realtor_button.addEventListener("click", (e) => {
-        console.log("E: ", e);
         let type = e.target.id.split("_")[2];
         let index = e.target.id.split("_")[0];
-        console.log("TYPE: ", type);
-        console.log("index: ", index);
 
         switch (type) {
           case "delete": {
@@ -282,8 +254,6 @@ function createRealtorListeners(realtors) {
 
 // Create an HTML table using the JSON data.
 export function generateRealtorTable(data) {
-  console.log("generateRealtorTable: ", data);
-
   var headers = ["Name", "Email", "Action"];
 
   var table = document.createElement("TABLE"); //makes a table element for the page
@@ -310,7 +280,6 @@ export function generateRealtorTable(data) {
 }
 
 export function setLoggedInState(options) {
-  console.log("options: ", options);
   chrome.storage.local.set({
     token: options.token,
     email: options.email,
@@ -340,7 +309,6 @@ function setIdVisible(id) {
 }
 
 function setEmailText(text) {
-  console.log("set email text: ", text);
   document.getElementById("current_email").innerHTML = text;
 }
 
@@ -349,7 +317,6 @@ function setEmailText(text) {
  *
  */
 function authorizeActionClicked() {
-  console.log("authorizeActionClicked");
   getAuthToken({
     interactive: true,
     callback: getBrowserActionAuthTokenCallback,
@@ -363,7 +330,6 @@ function authorizeActionClicked() {
  */
 function signoutActionClicked() {
   chrome.identity.clearAllCachedAuthTokens((callback) => {
-    console.log("successfully logged out: ", callback);
     setLoggedOutState();
   });
 }
@@ -376,7 +342,6 @@ function signoutActionClicked() {
  *   @value {function} callback - Async function to receive getAuthToken result.
  */
 function getAuthToken(options) {
-  console.log("getAuthToken");
   chrome.identity.getAuthToken(
     { interactive: options.interactive },
     options.callback
@@ -389,7 +354,6 @@ function getAuthToken(options) {
  * @param {string} token - Current users access_token.
  */
 async function getBrowserActionAuthTokenCallback(token) {
-  console.log("getBrowserActionAuthTokenCallback");
   if (chrome.runtime.lastError) {
     console.log("chrome.runtime.lastError", chrome.runtime.lastError);
     // getAuthToken({
@@ -399,7 +363,6 @@ async function getBrowserActionAuthTokenCallback(token) {
   } else {
     try {
       // successful auth
-      console.log("getBrowserActionAuthTokenCallback ELSE");
       const { email, id } = await getProfile();
 
       setLoggedInState({ email: email, token: token, userId: id });
@@ -421,26 +384,11 @@ function getProfile() {
   return new Promise(function (resolve, reject) {
     chrome.identity.getProfileUserInfo(function (user_info) {
       if (user_info && user_info.email) {
-        console.log("USER_INFO: ", user_info);
         resolve(user_info);
       } else {
         reject("Error fetching email");
       }
     });
-
-    // chrome.storage.local.get(["token"], function (result) {
-    //   if (result) {
-    //     const token = result.token;
-    //     get({
-    //       url: "https://www.googleapis.com/plus/v1/people/me",
-    //       callback: (person) => {
-    //         console.log("PERSON :", person);
-    //       },
-    //       token: token,
-    //     });
-    //   }
-    //   resolve([]);
-    // });
   });
 }
 
@@ -458,8 +406,6 @@ function get(options) {
     if (xhr.readyState === 4 && xhr.status === 200) {
       // JSON response assumed. Other APIs may have different responses.
       options.callback(JSON.parse(xhr.responseText));
-    } else {
-      console.log("get", xhr.readyState, xhr.status, xhr.responseText);
     }
   };
   xhr.open("GET", options.url, true);
@@ -482,13 +428,9 @@ function postGmail(options) {
     if (xhr.readyState === 4 && xhr.status === 200) {
       // JSON response assumed. Other APIs may have different responses.
       options.callback(JSON.parse(xhr.responseText));
-    } else {
-      console.log("get", xhr.readyState, xhr.status, xhr.responseText);
     }
   };
 
-  console.log("OPTIONS: DATA: ");
-  console.log(options.data);
   xhr.open("POST", options.url, true);
   // Set standard Google APIs authentication header.
   // xhr.setRequestHeader("Accept", "application/json");
