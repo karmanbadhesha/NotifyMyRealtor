@@ -1,11 +1,11 @@
 # <img src="public/icons/icon_48.png" width="45" align="left"> Notifymyrealtor
 
-My Chrome Extension
+This Chrome Extension allows for you to easily email your realtor any listings you come across!
 
 ## Features
 
-- Feature 1
-- Feature 2
+- Send your realtor emails straight from the Google account that you are logged into on Google Chrome! 
+- Manage a list of realtors
 
 ## Install
 
